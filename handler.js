@@ -11,7 +11,7 @@ app.use(express.json());
 app.get("/users/:userId", async (req, res) => {
     const params = {
         TableName: USERS_TABLE,
-        key: {
+        Key: {
             userId: req.params.userId,
         },
     }
@@ -49,6 +49,25 @@ app.post("/users", async (req, res) => {
         console.log(error);
         res.status(500).json({ error: "Could not create user" });
     }
+
+app.put("/users/:userId",async (req, res) => {
+    const { userId, name, email } =  req.body;
+
+    const params = {
+        TableName: USERS_TABLE,
+        Key: {
+            userId: req.params.userId,
+        },
+    }
+
+    try {
+        await dynamoDbClient.put(params).promise();
+        res.json({ userId, name, email })
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Could not update user" })
+    }
+})
 });
 
 app.use((req, res, next) => {
