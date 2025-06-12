@@ -1,20 +1,34 @@
-org: vinicius-dev
+org: viniciusserverless
 app: serverless-api
 service: serverless-api
-frameworkVersion: "3"
+frameworkVersion: "4"
 
 plugins:
-  - serverless-esbuild
+  - serverless-plugin-datadog
 
 custom: 
   tableName: "users-table-${sls:stage}"
-  esbuild:
-    bundle: true
-    minify: false
+  datadog: 
+    site: datadoghq.com
+    apiKeySecretArn: ${env:DD_API_KEY_SECRET_ARN}
+    addLayers: true
+    forwarder: true
+    enableXrayTracing: true
+    enableDDTracing: true
+    enableDDLogs: true
+    subscribeToAccessLogs: true
 
 provider: 
   name: aws
   runtime: nodejs18.x
+  region: us-east-1
+  profile: serverless-api
+  environment:
+    USERS_TABLE: ${self:custom.tableName}
+    DD_TRACE_ENABLED: "true"
+    DD_ENV: "dev"
+    DD_SERVICE: "serverless-api"
+    DD_VERSION: "1.0.0"
   iam:
     role:
       statements:
@@ -28,14 +42,18 @@ provider:
             - dynamodb:DeleteItem
           Resource: 
             - Fn::GetAtt: [UsersTable, Arn]
-  environment:
-    USERS_TABLE: ${self:custom.tableName}
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: 
+            - ${env:DD_API_KEY_SECRET_ARN}
 
 functions: 
   api:
     handler: handler.handler
     events:
       - httpApi: "*"
+
 
 resources: 
   Resources:
